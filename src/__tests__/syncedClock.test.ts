@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SyncedClock } from '../syncedClock.js';
+import { FilterEngine } from '../filterEngine.js';
+import { SlewEngine } from '../slewEngine.js';
+import { calculateRTT, calculateOffset } from '../timeMath.js';
 import type { TransportAdapter, PongPayload, SyncConfig } from '../types.js';
 
 type MockAdapter = TransportAdapter & { triggerPong: (pong: PongPayload) => void };
@@ -124,5 +127,56 @@ describe('SyncedClock', () => {
       clock.stop();
       clock.stop();
     }).not.toThrow();
+  });
+
+  it('start() triggers pings at syncIntervalMs frequency', () => {
+    const adapter = createMockAdapter();
+    const config = createConfig({ transportAdapter: adapter, syncIntervalMs: 1000 });
+    const clock = new SyncedClock(config);
+    clock.start();
+    expect(adapter.sendPing).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1000);
+    expect(adapter.sendPing).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(2000);
+    expect(adapter.sendPing).toHaveBeenCalledTimes(4);
+    clock.stop();
+  });
+
+  it('pong data flows through TimeMath into FilterEngine and updates SlewEngine target', () => {
+    const filterPushSpy = vi.spyOn(FilterEngine.prototype, 'push');
+    const slewSetTargetSpy = vi.spyOn(SlewEngine.prototype, 'setTargetOffset');
+
+    const adapter = createMockAdapter();
+    new SyncedClock(createConfig({ transportAdapter: adapter }));
+
+    const pong: PongPayload = { t0: 0, t1: 100, t2: 100, t3: 10, id: 'p1' };
+    adapter.triggerPong(pong);
+
+    const expectedRtt = calculateRTT(pong.t0, pong.t1, pong.t2, pong.t3);
+    const expectedOffset = calculateOffset(pong.t0, pong.t1, pong.t2, pong.t3);
+
+    expect(filterPushSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ rtt: expectedRtt, offset: expectedOffset }),
+    );
+    // For a single sample, FilterEngine.getOptimalOffset() returns the sample's offset directly,
+    // so the SlewEngine target must equal that computed offset.
+    expect(slewSetTargetSpy).toHaveBeenCalledWith(expectedOffset);
+  });
+
+  it('performanceNow() returns slewed time from SlewEngine', () => {
+    const adapter = createMockAdapter();
+    const clock = new SyncedClock(createConfig({ transportAdapter: adapter }));
+
+    // Inject a positive offset: t0=0, t1=100, t2=100, t3=10 → offset = ((100-0)+(100-10))/2 = 95ms
+    const pong: PongPayload = { t0: 0, t1: 100, t2: 100, t3: 10, id: 'p1' };
+    adapter.triggerPong(pong);
+
+    // Advance time enough for SlewEngine to converge (gap=95ms, rate=5% → ~1900ms)
+    vi.advanceTimersByTime(10000);
+
+    const perfNow = clock.performanceNow();
+    const rawPerfNow = performance.now();
+    // After convergence the slewed performance time should be ahead of raw performance.now()
+    expect(perfNow).toBeGreaterThan(rawPerfNow);
   });
 });

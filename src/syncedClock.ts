@@ -1,9 +1,12 @@
 import type { SyncConfig, SyncSample, PongPayload, PingPayload } from './types.js';
-import { calculateRTT, calculateOffset, filterOutliers, calculateMean } from './timeMath.js';
+import { calculateRTT, calculateOffset } from './timeMath.js';
+import { FilterEngine } from './filterEngine.js';
+import { SlewEngine } from './slewEngine.js';
 
 export class SyncedClock {
   private readonly _config: SyncConfig;
-  private readonly _samples: SyncSample[] = [];
+  private readonly _filterEngine: FilterEngine;
+  private readonly _slewEngine: SlewEngine;
   private _offset: number = 0;
   private _targetOffset: number = 0;
   private _lastNow: number = 0;
@@ -12,6 +15,8 @@ export class SyncedClock {
 
   constructor(config: SyncConfig) {
     this._config = config;
+    this._filterEngine = new FilterEngine(config.historySize, config.outlierThreshold);
+    this._slewEngine = new SlewEngine();
     config.transportAdapter.onPong((pong) => this._handlePong(pong));
   }
 
@@ -31,7 +36,7 @@ export class SyncedClock {
   }
 
   performanceNow(): number {
-    return performance.now() + this._offset;
+    return this._slewEngine.now();
   }
 
   start(): void {
@@ -72,15 +77,8 @@ export class SyncedClock {
       timestamp: Date.now(),
     };
 
-    this._samples.push(sample);
-    if (this._samples.length > this._config.historySize) {
-      this._samples.shift();
-    }
-
-    const offsets = this._samples.map((s) => s.offset);
-    const filtered = filterOutliers(offsets, this._config.outlierThreshold);
-    if (filtered.length > 0) {
-      this._targetOffset = calculateMean(filtered);
-    }
+    this._filterEngine.push(sample);
+    this._targetOffset = this._filterEngine.getOptimalOffset();
+    this._slewEngine.setTargetOffset(this._targetOffset);
   }
 }
