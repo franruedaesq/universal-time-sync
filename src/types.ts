@@ -29,3 +29,14 @@ export interface SyncSample {
   offset: number;
   timestamp: number;
 }
+
+export interface SyncPayload {
+  t0: number;
+  t1: number;
+  t2: number;
+  id: string;
+}
+
+export interface SyncManager {
+  onReceivePong(payload: PongPayload): void;
+}
