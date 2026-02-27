@@ -26,14 +26,15 @@
     "build:tsc": "tsc",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/franruedaesq/universal-time-sync.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["ntp", "time-sync", "monotonic", "clock", "crdt"],
+  "author": "franruedaesq",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/franruedaesq/universal-time-sync/issues"
