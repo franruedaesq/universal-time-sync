@@ -3,10 +3,27 @@
   "version": "0.1.0",
   "description": "An invisible, monotonic metronome that establishes a shared chronological reality. It uses NTP-style mathematics to calculate network latency and clock offsets, filters out network anomalies statistically, and smoothly \"slews\" the local clock to match the global time without ever jumping backward (time travel).",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "dist/index.d.ts",
+        "default": "dist/index.js"
+      },
+      "require": {
+        "types": "dist/index.d.cts",
+        "default": "dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
+    "build:tsc": "tsc",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write ."
@@ -28,6 +45,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.2",
     "prettier": "^3.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
