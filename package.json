@@ -1,0 +1,34 @@
+{
+  "name": "universal-time-sync",
+  "version": "0.1.0",
+  "description": "An invisible, monotonic metronome that establishes a shared chronological reality. It uses NTP-style mathematics to calculate network latency and clock offsets, filters out network anomalies statistically, and smoothly \"slews\" the local clock to match the global time without ever jumping backward (time travel).",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/franruedaesq/universal-time-sync.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/franruedaesq/universal-time-sync/issues"
+  },
+  "homepage": "https://github.com/franruedaesq/universal-time-sync#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
